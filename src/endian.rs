@@ -73,10 +73,6 @@ impl Deref for Length {
     }
 }
 
-impl Ascii {
-    const MAX: u32 = u8::MAX as u32;
-}
-
 impl Length {
     #[cfg(feature = "MAX_LEN_100M")]
     const MAX_LEN: usize = 104_857_600;
