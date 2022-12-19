@@ -8,6 +8,9 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "resend is a easy to use, performant, customizable and extendable Rust library for little-endian/big-endian serializing and deserializing."
 publish = true
+repository = "https://github.com/WalterYongtaoWang/resend"
+categories = ["encoding", "nework-programming"]
+keywords = ["serialize", "deserialize", "binary", "encode", "decode", "big-endian", "little-endian"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
