@@ -1,0 +1,35 @@
+[workspace]
+members = ["derive"]
+
+[package]
+name = "resend"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "resend is a easy to use, performant, customizable and extendable Rust library for little-endian/big-endian serializing and deserializing."
+publish = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = []
+# little endian
+little = []
+# big endian
+big = []
+#unstable feature: min_specialization, which improve the performance on Vec<u8> etc.
+unstable = []
+# length for String, collections is u16
+len_16 = []
+# length for String, collections is Variable-length quantity
+len_vlq = []
+# max len is 100M
+MAX_LEN_100M = []
+# max len is 500M
+MAX_LEN_500M = []
+# max len is 2G
+MAX_LEN_2G = []
+
+
+[dependencies]
+resend_derive = {path = "derive"}
