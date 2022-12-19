@@ -3,6 +3,12 @@ name = "resend_derive"
 version = "0.1.0"
 edition = "2018"
 license = "MIT OR Apache-2.0"
+description = "resend derive for resend serializing libarary"
+publish = true
+repository = "https://github.com/WalterYongtaoWang/resend"
+categories = ["encoding", "nework-programming"]
+keywords = ["serialize", "deserialize", "binary", "encode", "decode", "big-endian", "little-endian"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
