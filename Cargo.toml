@@ -35,4 +35,4 @@ MAX_LEN_2G = []
 
 
 [dependencies]
-resend_derive = {path = "derive"}
+resend_derive = {version = "0.1", path = "derive"}
