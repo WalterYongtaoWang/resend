@@ -119,7 +119,7 @@ Please be aware: [discriminants on non-unit variants are experimental for now (R
 
 # Customizable (attributes)
 
-1. Send both little-endian and big-endian at the same time with the resend::endian::little:LE and resend::endian::big::BE:
+1. Send both little-endian and big-endian at the same time with the resend::endian::little::LE and resend::endian::big::BE:
 
 ```rust
 stream.snd(BE(100_u32))?;
@@ -138,7 +138,7 @@ stream.snd(BE(100_u32))?;
 #[when(code_page > 0)]
 #[when((flags & 2) != 0)]
 ```
-5. Length can be u16 or VLQ with features (u32 by default)
+5. Length can be u16 or [VLQ](https://en.wikipedia.org/wiki/Variable-length_quantity) with features (u32 by default)
 ```toml
 resend = {version = "0.1", features = ["little", "len_16"]}
 resend = {version = "0.1", features = ["big", "len_vlq"]}
@@ -223,6 +223,27 @@ impl IntoWriter for Vec<u8> {
 //[u8] doesn't implement Read, convert it to &[u8] with as_ref()
 let c: Color = [32_u8, 0].as_ref().rcv()?;
 ```
+
+3. Use enumeration to serialize Object Oriented classes: 
+```Rust
+//type value (enum tag value) after the parent class
+struct YourObject {
+    parent: ParentClass,
+    child: EnumOfChildClass,
+}
+//type value (enum tag value) before the parent class
+struct Child {
+    parent: ParentClass,
+    child_field,
+    ...
+}
+enum {
+    child1,
+    child2,
+}
+
+```
+4. resend::endian:Length handles 3 types: u32, u16, VLQ. It's better to use this Length type directly in your object.
 
 # License
 MIT OR Apache-2.0
