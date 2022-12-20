@@ -83,13 +83,13 @@ impl Length {
     ///Check if lenght is too big when
     /// The crates has one of the features: MAX_LEN_100M, MAX_LEN_500M, MAX_LEN_2G
     #[inline]
-    pub fn check(self) -> crate::Result<Self> {
+    pub fn check(&self) -> crate::Result<()> {
         #[cfg(any(feature = "MAX_LEN_100M", feature = "MAX_LEN_500M", feature = "MAX_LEN_2G"))]
         if self.0 > Self::MAX_LEN {
             return Err(crate::error::Error::DataTooLarge(Self::MAX_LEN))
         }
 
-        Ok(self)
+        Ok(())
     }
 }
 
