@@ -505,7 +505,7 @@ impl FromReader for String {
 
         let b = reader.rcv_bytes(len)?;
         let mut s = std::str::from_utf8(&b)
-            .map_err(|e| crate::error::Error::Utf8(e))?
+            .map_err(crate::error::Error::Utf8)?
             .to_string();
         while s.ends_with('\0') {
             s.truncate(s.len() - 1); //String is UTF8
@@ -587,7 +587,7 @@ impl FromReader for UTF16 {
             return Ok(UTF16("".to_string()));
         }
 
-        let mut s = String::with_capacity(len as usize / 2);
+        let mut s = String::with_capacity(len / 2);
         while len > 0 {
             let c = UTF16Char::rcv_from(reader)?;
             len -= c.0.len_utf16() * 2;

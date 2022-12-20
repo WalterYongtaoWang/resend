@@ -220,7 +220,7 @@ impl SendableLE for Vec<u8> {
     #[inline]
     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
         Length(self.len()).send_to(writer)?;
-        writer.snd_all(&self)?;
+        writer.snd_all(self)?;
         Ok(())
     }
 }
@@ -482,7 +482,7 @@ impl ReceivableLE for String {
     {
         let len = *Length::receive_from(reader)?;
         let buffer = reader.rcv_bytes(len)?;
-        let s = std::str::from_utf8(&buffer).map_err(|e| crate::error::Error::Utf8(e))?;
+        let s = std::str::from_utf8(&buffer).map_err(crate::error::Error::Utf8)?;
         Ok(s.to_string())
     }
 }
@@ -696,7 +696,7 @@ impl ReceivableLE for UTF16 {
         Self: Sized,
     {
         let mut len = *Length::receive_from(reader)?;
-        let mut s = String::with_capacity(len as usize / 2);
+        let mut s = String::with_capacity(len / 2);
         while len > 0 {
             let c = UTF16Char::receive_from(reader)?;
             len -= c.0.len_utf16() * 2;

@@ -59,6 +59,7 @@ pub trait FromReader: Sized {
 /// The length can be from another field value or const for the #[len] attribute 
 /// For example: #[len(field_name)], #[len(8)]
 pub trait IntoWriter {
+    #[allow(clippy::wrong_self_convention)]
     fn into_writer<S: Sender>(&self, writer: &mut S, len: usize) -> Result<()>;
 }
 
@@ -84,6 +85,7 @@ where
     }
 
     #[inline]
+    #[allow(clippy::uninit_vec)]
     fn rcv_bytes(&mut self, len: usize) -> Result<Vec<u8>> {
         // let mut vec = vec![0; len];
         let mut vec = Vec::with_capacity(len);
@@ -101,7 +103,7 @@ impl<W: std::io::Write> Sender for W
 {
     #[inline]
     fn snd_all(&mut self, buf: &[u8]) -> Result<()> {
-        self.write_all(buf).map_err(|e| crate::error::Error::Io(e))
+        self.write_all(buf).map_err(crate::error::Error::Io)
     }
 }
 
@@ -110,6 +112,6 @@ impl<R: std::io::Read> Receiver for R
 {
     #[inline]
     fn rcv_all(&mut self, buf: &mut [u8]) -> Result<()> {
-        self.read_exact(buf).map_err(|e| crate::error::Error::Io(e))
+        self.read_exact(buf).map_err(crate::error::Error::Io)
     }
 }

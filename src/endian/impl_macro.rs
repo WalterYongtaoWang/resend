@@ -1,4 +1,5 @@
 #[macro_export]
+#[allow(clippy::crate_in_macro_def)]
 macro_rules! snd_ref {
     ($t:ty) => {
         impl Sendable for $t {
@@ -14,6 +15,7 @@ macro_rules! snd_ref {
 }
 
 #[macro_export]
+#[allow(clippy::crate_in_macro_def)]
 macro_rules! impl_tuple {
     ($($name:ident), +) => {
         impl<$($name: Sendable),+> Sendable for ($($name,)+)

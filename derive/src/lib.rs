@@ -352,7 +352,7 @@ fn get_lifetime(ast: &syn::DeriveInput) -> Vec<&GenericParam> {
 }
 
 #[inline]
-fn get_attr<'a>(attrs: &'a Vec<Attribute>, value: &str) -> Option<&'a Attribute>{
+fn get_attr<'a>(attrs: &'a [Attribute], value: &str) -> Option<&'a Attribute>{
     attrs.iter().find(|&attr| {
         attr.path.is_ident(value)
     })
@@ -422,13 +422,13 @@ fn is_option(p: &TypePath) -> bool {
 }
 #[inline]
 fn parse_int(s: &str) ->  Result<u32, ParseIntError> {
-    if s.starts_with("0x"){
-        u32::from_str_radix(&s[2..], 16)
-    } else if s.starts_with("0b") {
-        u32::from_str_radix(&s[2..], 2)
-    } else if s.starts_with("0o") {
-        u32::from_str_radix(&s[2..], 8)
+    if let Some(stripped) = s.strip_prefix("0x") {
+        u32::from_str_radix(stripped, 16)
+    } else if let Some(stripped) = s.strip_prefix("0b") {
+        u32::from_str_radix(stripped, 2)
+    } else if let Some(stripped) = s.strip_prefix("0o") {
+        u32::from_str_radix(stripped, 8)
     } else {
-        u32::from_str_radix(s, 10)
+        s.parse::<u32>()
     }
 }
