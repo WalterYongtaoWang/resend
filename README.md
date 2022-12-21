@@ -167,7 +167,7 @@ impl Receivable for VarLenString {
         R: resend::Receiver {
         let len: VLQ = reader.rcv()?;
         let b = reader.rcv_bytes(*len)?;
-        let s = std::str::from_utf8(&b).map_err(|e| resend::error::Error::Utf8(e))?;
+        let s = std::str::from_utf8(&b)?;
         Ok(Self(s.to_string()))
     }
 }

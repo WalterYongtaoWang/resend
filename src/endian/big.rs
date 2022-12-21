@@ -443,7 +443,7 @@ impl ReceivableBE for String {
     {
         let len = *Length::receive_from(reader)?;
         let buffer = reader.rcv_bytes(len)?;
-        let s = std::str::from_utf8(&buffer).map_err( crate::error::Error::Utf8)?;
+        let s = std::str::from_utf8(&buffer)?;
         Ok(s.to_string())
     }
 }

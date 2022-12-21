@@ -558,9 +558,7 @@ impl FromReader for String {
         }
 
         let b = reader.rcv_bytes(len)?;
-        let mut s = std::str::from_utf8(&b)
-            .map_err(crate::error::Error::Utf8)?
-            .to_string();
+        let mut s = std::str::from_utf8(&b)?.to_string();
         while s.ends_with('\0') {
             s.truncate(s.len() - 1); //String is UTF8
         }

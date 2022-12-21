@@ -1,6 +1,6 @@
 //! Erros for serializing and deserializing
 
-use std::{error, fmt::Display};
+use std::{error, fmt::Display, str::Utf8Error};
 
 ///Errors for resend
 #[non_exhaustive]
@@ -19,7 +19,7 @@ pub enum Error {
 
     Io(std::io::Error),
     
-    Utf8(std::str::Utf8Error),
+    Utf8(Utf8Error),
     ///New kind will be added to replace Other
     Other(&'static str),
 }
@@ -47,6 +47,13 @@ impl From<std::io::Error> for Error {
         Io(e)
     }
 }
+
+impl From<Utf8Error> for Error {
+    fn from(e: Utf8Error) -> Self {
+        Utf8(e)
+    }
+}
+
 
 impl From<&'static str> for Error {
     fn from(s: &'static str) -> Self {

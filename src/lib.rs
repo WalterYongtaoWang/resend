@@ -101,7 +101,8 @@ impl<W: std::io::Write> Sender for W
 {
     #[inline]
     fn snd_all(&mut self, buf: &[u8]) -> Result<()> {
-        self.write_all(buf).map_err(crate::error::Error::Io)
+        self.write_all(buf)?;
+        Ok(())
     }
 }
 
@@ -110,6 +111,7 @@ impl<R: std::io::Read> Receiver for R
 {
     #[inline]
     fn rcv_all(&mut self, buf: &mut [u8]) -> Result<()> {
-        self.read_exact(buf).map_err(crate::error::Error::Io)
+        self.read_exact(buf)?;
+        Ok(())
     }
 }
