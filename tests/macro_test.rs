@@ -1,4 +1,4 @@
-#![cfg(feature = "little")]
+#![cfg(any(feature = "little", feature = "big"))]
 use std::assert_eq;
 
 use resend::{
@@ -183,10 +183,15 @@ fn test_unit_enum() -> resend::Result<()> {
     let c: Color = buf.rcv()?;
     assert_eq!(c, Color::Blue);
 
-    //only work with LE
     #[cfg(feature = "little")]
     {
         let c: Color = [32_u8, 0].as_ref().rcv()?;
+        assert_eq!(c, Color::Blue);
+    }
+
+    #[cfg(feature = "big")]
+    {
+        let c: Color = [0, 32_u8].as_ref().rcv()?;
         assert_eq!(c, Color::Blue);
     }
 
