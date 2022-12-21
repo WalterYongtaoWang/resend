@@ -315,7 +315,7 @@ fn receive_enum(ast: &syn::DeriveInput) -> TokenStream {
                     let tag: #tag_type = reader.rcv()?;
                     match tag {
                         #(#arms,)*
-                        _ => Err(resend::error::Error::InvalidTag),
+                        _ => Err(resend::error::Error::InvalidTag(tag as u32)),
                     }
                 }
             }

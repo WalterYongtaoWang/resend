@@ -78,11 +78,7 @@ stream.snd(&dt)?;
 ```
 
 # Performant
-Write/Read trait based, no intermediate variables. You can enable the "unstable" feature on Rust nightly to get best performance:
-
-```toml
-resend = {version = "0.1", features = ["big", "unstable"]}
-```
+Write/Read trait based, no intermediate variables.
 
 # Format
 
@@ -115,7 +111,7 @@ pub enum DeviceType {
 DeviceType::PrinterType(printer) is serialized as 4_u32 + IoPrinter data.
 DeviceType::ScardType is serialized as 0x20_u32.
 
-Please be aware: [discriminants on non-unit variants are experimental for now (Rust 1.65)](https://github.com/rust-lang/rust/issues/60553), you have to use nightly build.
+Please be aware: [discriminants on non-unit variants are experimental for now (Rust 1.65)](https://github.com/rust-lang/rust/issues/60553), you have to use Rust nightly for this.
 
 # Customizable (attributes)
 

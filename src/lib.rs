@@ -1,6 +1,4 @@
 //! Sender, Receiver, Snd, Rcv traits.
-#![cfg_attr(feature = "unstable", feature(min_specialization))]
-
 pub mod endian;
 pub mod error;
 

@@ -9,9 +9,9 @@ pub enum Error {
     ///value is zero for NonzeroInt
     Zero,
     ///invalid tag value for enum
-    InvalidTag,
+    InvalidTag(u32),
 
-    NotAscii(String),
+    InvalidAscii(String),
     ///length is too big
     DataTooLarge(usize),
     

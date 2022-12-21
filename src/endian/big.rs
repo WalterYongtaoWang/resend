@@ -167,58 +167,21 @@ where
     T: SendableBE,
 {
     #[inline]
-    #[cfg(feature = "unstable")]
-    default fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        for v in self {
-            v.send_to(writer)?;
-        }
-        Ok(())
-    }
-    #[inline]
-    #[cfg(not(feature = "unstable"))]
     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
         for v in self {
             v.send_to(writer)?;
         }
-        Ok(())
-    }
-}
-
-#[cfg(feature = "unstable")]
-impl<const N: usize> SendableBE for [u8; N] {
-    #[inline]
-    fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        writer.snd_all(self)?;
         Ok(())
     }
 }
 
 impl<T: SendableBE> SendableBE for Vec<T> {
     #[inline]
-    #[cfg(feature = "unstable")]
-    default fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        Length(self.len()).send_to(writer)?;
-        for v in self.iter() {
-            v.send_to(writer)?;
-        }
-        Ok(())
-    }
-    #[inline]
-    #[cfg(not(feature = "unstable"))]
     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
         Length(self.len()).send_to(writer)?;
         for v in self.iter() {
             v.send_to(writer)?;
         }
-        Ok(())
-    }
-}
-#[cfg(feature = "unstable")]
-impl SendableBE for Vec<u8> {
-    #[inline]
-    fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        Length(self.len()).send_to(writer)?;
-        writer.snd_all(self)?;
         Ok(())
     }
 }
@@ -264,7 +227,7 @@ impl SendableBE for Ascii {
     #[inline]
     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
         if !self.0.is_ascii() {
-            return Err(crate::error::Error::NotAscii(self.0.clone()));
+            return Err(crate::error::Error::InvalidAscii(self.0.clone()));
         }
 
         Length(self.0.len()).send_to(writer)?;
@@ -490,20 +453,6 @@ where
     T: Eq + ReceivableBE + Debug + Display,
 {
     #[inline]
-    #[cfg(feature = "unstable")]
-    default fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
-    where
-        Self: Sized,
-    {
-        let mut v = Vec::with_capacity(N);
-        for _ in 0..N {
-            v.push(T::receive_from(reader)?);
-        }
-        Self::try_from(v).map_err(|_| crate::error::Error::Other("convert vec to array error"))
-    }
-
-    #[inline]
-    #[cfg(not(feature = "unstable"))]
     fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
     where
         Self: Sized,
@@ -512,18 +461,6 @@ where
         for _ in 0..N {
             v.push(T::receive_from(reader)?);
         }
-        Self::try_from(v).map_err(|_| crate::error::Error::Other("convert vec to array error"))
-    }
-}
-
-#[cfg(feature = "unstable")]
-impl<const N: usize> ReceivableBE for [u8; N] {
-    #[inline]
-    fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
-    where
-        Self: Sized,
-    {
-        let v = reader.rcv_bytes(N)?;
         Self::try_from(v).map_err(|_| crate::error::Error::Other("convert vec to array error"))
     }
 }
@@ -659,7 +596,7 @@ impl ReceivableBE for Ascii {
             if let Some(c) = char::from_u32(a as u32) {
                 s.push(c);
             } else {
-                return Err(crate::error::Error::NotAscii(format!("u8: {}", a)))
+                return Err(crate::error::Error::InvalidAscii(format!("u8: {}", a)))
             }
         }
         Ok(Ascii(s))

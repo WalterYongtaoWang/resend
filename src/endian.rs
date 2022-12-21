@@ -268,6 +268,60 @@ impl Receivable for CString {
     }
 }
 
+impl<const N: usize> Sendable for [u8; N] {
+    #[inline]
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        writer.snd_all(self)?;
+        Ok(())
+    }
+}
+
+impl<const N: usize> Sendable for &[u8; N] {
+    #[inline]
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        writer.snd_all(*self)?;
+        Ok(())
+    }
+}
+
+
+impl<const N: usize> Receivable for [u8; N] {
+    #[inline]
+    fn rcv_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        let v = reader.rcv_bytes(N)?;
+        Self::try_from(v).map_err(|_| crate::error::Error::Other("convert vec to array error"))
+    }
+}
+
+#[cfg(any(feature = "little", feature = "big"))]
+impl Sendable for Vec<u8> {
+    #[inline]
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        //length need to be little or big-endian
+        Length(self.len()).snd_to(writer)?;
+        writer.snd_all(self)?;
+        Ok(())
+    }
+}
+
+#[cfg(any(feature = "little", feature = "big"))]
+snd_ref!(&Vec<u8>);
+
+#[cfg(any(feature = "little", feature = "big"))]
+impl Receivable for Vec<u8> {
+    #[inline]
+    fn rcv_from<R>(reader: &mut R) -> crate::Result<Self>
+    where
+        R: Receiver {
+        let len = *Length::rcv_from(reader)?;
+        reader.rcv_bytes(len)
+    }
+}
+
+
 #[cfg(any(feature = "little", feature = "big"))]
 impl Sendable for usize {
     #[inline]
@@ -931,6 +985,38 @@ mod tests {
         let actual: Range<i32> = buf.rcv()?;
 
         assert_eq!(t, actual);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_u8_array() -> crate::Result<()>{
+        let b = [22_u8; 32];
+
+        let mut vec = Vec::new();
+        vec.snd(&b)?;
+
+        let mut buf: &[u8] = &vec;
+        let actual: [u8; 32] = buf.rcv()?;
+
+        assert_eq!(&b, &actual);
+
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(any(feature = "big", feature = "little"))]
+    fn test_vec_u8() -> crate::Result<()>{
+
+        let b = vec![1_u8, 2, 3];
+        
+        let mut vec = Vec::new();
+        vec.snd(&b)?;
+
+        let mut buf: &[u8] = &vec;
+        let actual: Vec<u8> = buf.rcv()?;
+
+        assert_eq!(&b, &actual);
 
         Ok(())
     }

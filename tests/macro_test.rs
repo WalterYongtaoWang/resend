@@ -1,4 +1,6 @@
 #![cfg(feature = "little")]
+use std::assert_eq;
+
 use resend::{endian::{UTF16, VLQ}, Sendable, Receivable, Snd, Rcv};
 use resend_derive::{Snd, Rcv};
 
@@ -36,9 +38,9 @@ struct Person {
 
 //discriminants on non-unit variants are experimental
 //https://github.com/rust-lang/rust/issues/60553
-#[cfg(feature="unstable")]
 #[repr(u32)]
 #[derive(Snd, Rcv, Debug, PartialEq)]
+#[cfg(feature="unstable")]
 enum DeviceType {
     A,
     B = 2,
@@ -141,7 +143,26 @@ fn test_enum() -> resend::Result<()> {
     let dt : DeviceType = buf.rcv()?;
     assert_eq!(dt, DeviceType::Pt(Point{x: 5, y: 8, s: "1234".to_string(), u: UTF16("123".to_string())}));
 
+    Ok(())
+}
+
+
+#[test]
+fn test_unit_enum() -> resend::Result<()> {
+    assert_eq!(32, Color::Blue as u32);
+    let mut vec = Vec::new();
+    vec.snd(&Color::Blue)?;
+
+    let mut buf = &vec[..];
+    let c : Color = buf.rcv()?;
+    assert_eq!(c, Color::Blue);
+
     //only work with LE
-    // let c: Color = [32_u8, 0].as_ref().rcv()?;
+    #[cfg(feature="little")]
+    {
+        let c: Color = [32_u8, 0].as_ref().rcv()?;
+        assert_eq!(c, Color::Blue);
+    }
+
     Ok(())
 }
