@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{Rcv, Receivable, Sendable, Sender, Receiver};
+use crate::{Rcv, Receivable, Receiver, Sendable, Sender};
 
 use super::{Ascii, Length, UTF16Char, UTF16};
 
@@ -275,7 +275,7 @@ impl SendableBE for Length {
         W: Sender,
     {
         self.check()?;
-        
+
         #[cfg(not(any(feature = "len_vlq", feature = "len_16")))]
         let r = (self.0 as u32).send_to(writer);
         #[cfg(feature = "len_16")]
@@ -596,7 +596,7 @@ impl ReceivableBE for Ascii {
             if let Some(c) = char::from_u32(a as u32) {
                 s.push(c);
             } else {
-                return Err(crate::error::Error::InvalidAscii(format!("u8: {}", a)))
+                return Err(crate::error::Error::InvalidAscii(format!("u8: {}", a)));
             }
         }
         Ok(Ascii(s))

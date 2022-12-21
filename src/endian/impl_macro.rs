@@ -22,7 +22,7 @@ macro_rules! impl_tuple {
         {
             #[allow(non_snake_case)]
             #[inline]
-            fn snd_to<W>(&self, writer: &mut W) -> crate::Result<()> 
+            fn snd_to<W>(&self, writer: &mut W) -> crate::Result<()>
             where W: Sender
             {
                 let ($($name,)+) = self;
@@ -36,7 +36,7 @@ macro_rules! impl_tuple {
             #[inline]
             fn rcv_from<R>(reader: &mut R) -> crate::Result<Self>
             where
-                R: Receiver 
+                R: Receiver
             {
                 Ok(
                     (

@@ -14,11 +14,11 @@ pub enum Error {
     InvalidAscii(String),
     ///length is too big
     DataTooLarge(usize),
-    
+
     InvalidChar(u32),
 
     Io(std::io::Error),
-    
+
     Utf8(Utf8Error),
     ///New kind will be added to replace Other
     Other(&'static str),
@@ -54,11 +54,8 @@ impl From<Utf8Error> for Error {
     }
 }
 
-
 impl From<&'static str> for Error {
     fn from(s: &'static str) -> Self {
         Other(s)
     }
 }
-
-

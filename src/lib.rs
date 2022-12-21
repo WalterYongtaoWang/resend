@@ -28,14 +28,12 @@ pub trait Receivable: Sized {
         R: Receiver;
 }
 
-
 ///Send Trait for Sender
 pub trait Snd {
     fn snd<T>(&mut self, v: T) -> Result<()>
     where
         T: Sendable;
 }
-
 
 ///Receive Trait for Receiver
 pub trait Rcv {
@@ -45,22 +43,20 @@ pub trait Rcv {
     fn rcv_bytes(&mut self, len: usize) -> Result<Vec<u8>>;
 }
 
-
 ///Receive Trait for the #[len] attribute
-/// The length can be from another field value or const for the #[len] attribute 
+/// The length can be from another field value or const for the #[len] attribute
 /// For example: #[len(field_name)], #[len(8)]
 pub trait FromReader: Sized {
     fn from_reader<R: Receiver>(reader: &mut R, len: usize) -> Result<Self>;
 }
 
 ///Send Trait for the #[len] attribute
-/// The length can be from another field value or const for the #[len] attribute 
+/// The length can be from another field value or const for the #[len] attribute
 /// For example: #[len(field_name)], #[len(8)]
 pub trait IntoWriter {
     #[allow(clippy::wrong_self_convention)]
     fn into_writer<S: Sender>(&self, writer: &mut S, len: usize) -> Result<()>;
 }
-
 
 impl<S: Sender> Snd for S {
     #[inline]
@@ -68,7 +64,6 @@ impl<S: Sender> Snd for S {
         v.snd_to(self)
     }
 }
-
 
 impl<R> Rcv for R
 where
@@ -97,8 +92,7 @@ where
 }
 
 //impl Sender for all Write implementors
-impl<W: std::io::Write> Sender for W
-{
+impl<W: std::io::Write> Sender for W {
     #[inline]
     fn snd_all(&mut self, buf: &[u8]) -> Result<()> {
         self.write_all(buf)?;
@@ -107,8 +101,7 @@ impl<W: std::io::Write> Sender for W
 }
 
 //impl Receiver for all Read implmentors
-impl<R: std::io::Read> Receiver for R
-{
+impl<R: std::io::Read> Receiver for R {
     #[inline]
     fn rcv_all(&mut self, buf: &mut [u8]) -> Result<()> {
         self.read_exact(buf)?;

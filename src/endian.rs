@@ -6,13 +6,13 @@ compile_error!("have both big or little feature");
 compile_error!("have both len_16 or len_vlq feature");
 
 pub mod big;
-pub mod little;
 pub mod impl_macro;
+pub mod little;
 
 use std::{ffi::CString, ops::Deref};
 
-use crate::{FromReader, IntoWriter, Rcv, Receivable, Sendable, Sender, Receiver};
-use crate::{snd_ref, impl_tuple};
+use crate::{impl_tuple, snd_ref};
+use crate::{FromReader, IntoWriter, Rcv, Receivable, Receiver, Sendable, Sender};
 
 ///UTF16 char
 #[derive(PartialEq, Eq, Debug)]
@@ -84,21 +84,24 @@ impl Length {
     /// The crates has one of the features: MAX_LEN_100M, MAX_LEN_500M, MAX_LEN_2G
     #[inline]
     pub fn check(&self) -> crate::Result<()> {
-        #[cfg(any(feature = "MAX_LEN_100M", feature = "MAX_LEN_500M", feature = "MAX_LEN_2G"))]
+        #[cfg(any(
+            feature = "MAX_LEN_100M",
+            feature = "MAX_LEN_500M",
+            feature = "MAX_LEN_2G"
+        ))]
         if self.0 > Self::MAX_LEN {
-            return Err(crate::error::Error::DataTooLarge(Self::MAX_LEN))
+            return Err(crate::error::Error::DataTooLarge(Self::MAX_LEN));
         }
 
         Ok(())
     }
 }
 
-
 impl Sendable for u8 {
     #[inline]
     fn snd_to<S>(&self, writer: &mut S) -> crate::Result<()>
     where
-        S: Sender 
+        S: Sender,
     {
         writer.snd_all(&[*self])
     }
@@ -117,7 +120,6 @@ impl Receivable for u8 {
         Ok(buf[0])
     }
 }
-
 
 impl Sendable for i8 {
     #[inline]
@@ -139,7 +141,6 @@ impl Receivable for i8 {
         Ok(buf[0] as i8)
     }
 }
-
 
 impl Sendable for bool {
     #[inline]
@@ -279,11 +280,11 @@ impl<const N: usize> Sendable for [u8; N] {
 impl<const N: usize> Sendable for &[u8; N] {
     #[inline]
     fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        #[allow(clippy::explicit_auto_deref)]
         writer.snd_all(*self)?;
         Ok(())
     }
 }
-
 
 impl<const N: usize> Receivable for [u8; N] {
     #[inline]
@@ -315,12 +316,12 @@ impl Receivable for Vec<u8> {
     #[inline]
     fn rcv_from<R>(reader: &mut R) -> crate::Result<Self>
     where
-        R: Receiver {
+        R: Receiver,
+    {
         let len = *Length::rcv_from(reader)?;
         reader.rcv_bytes(len)
     }
 }
-
 
 #[cfg(any(feature = "little", feature = "big"))]
 impl Sendable for usize {
@@ -388,8 +389,7 @@ impl Receivable for std::num::NonZeroU16 {
     where
         Self: Sized,
     {
-        Self::new(u16::rcv_from(reader)?)
-            .ok_or(crate::error::Error::Zero)
+        Self::new(u16::rcv_from(reader)?).ok_or(crate::error::Error::Zero)
     }
 }
 
@@ -404,7 +404,6 @@ impl Sendable for std::num::NonZeroI16 {
 #[cfg(any(feature = "little", feature = "big"))]
 snd_ref!(&std::num::NonZeroI16);
 
-
 #[cfg(any(feature = "little", feature = "big"))]
 impl Receivable for std::num::NonZeroI16 {
     #[inline]
@@ -412,8 +411,7 @@ impl Receivable for std::num::NonZeroI16 {
     where
         Self: Sized,
     {
-        Self::new(i16::rcv_from(reader)?)
-            .ok_or(crate::error::Error::Zero)
+        Self::new(i16::rcv_from(reader)?).ok_or(crate::error::Error::Zero)
     }
 }
 
@@ -428,7 +426,6 @@ impl Sendable for std::num::NonZeroU32 {
 #[cfg(any(feature = "little", feature = "big"))]
 snd_ref!(&std::num::NonZeroU32);
 
-
 #[cfg(any(feature = "little", feature = "big"))]
 impl Receivable for std::num::NonZeroU32 {
     #[inline]
@@ -436,8 +433,7 @@ impl Receivable for std::num::NonZeroU32 {
     where
         Self: Sized,
     {
-        Self::new(u32::rcv_from(reader)?)
-            .ok_or(crate::error::Error::Zero)
+        Self::new(u32::rcv_from(reader)?).ok_or(crate::error::Error::Zero)
     }
 }
 
@@ -452,7 +448,6 @@ impl Sendable for std::num::NonZeroI32 {
 #[cfg(any(feature = "little", feature = "big"))]
 snd_ref!(&std::num::NonZeroI32);
 
-
 #[cfg(any(feature = "little", feature = "big"))]
 impl Receivable for std::num::NonZeroI32 {
     #[inline]
@@ -460,8 +455,7 @@ impl Receivable for std::num::NonZeroI32 {
     where
         Self: Sized,
     {
-        Self::new(i32::rcv_from(reader)?)
-            .ok_or(crate::error::Error::Zero)
+        Self::new(i32::rcv_from(reader)?).ok_or(crate::error::Error::Zero)
     }
 }
 
@@ -476,7 +470,6 @@ impl Sendable for std::num::NonZeroU64 {
 #[cfg(any(feature = "little", feature = "big"))]
 snd_ref!(&std::num::NonZeroU64);
 
-
 #[cfg(any(feature = "little", feature = "big"))]
 impl Receivable for std::num::NonZeroU64 {
     #[inline]
@@ -484,8 +477,7 @@ impl Receivable for std::num::NonZeroU64 {
     where
         Self: Sized,
     {
-        Self::new(u64::rcv_from(reader)?)
-            .ok_or(crate::error::Error::Zero)
+        Self::new(u64::rcv_from(reader)?).ok_or(crate::error::Error::Zero)
     }
 }
 
@@ -500,7 +492,6 @@ impl Sendable for std::num::NonZeroUsize {
 #[cfg(any(feature = "little", feature = "big"))]
 snd_ref!(&std::num::NonZeroUsize);
 
-
 #[cfg(any(feature = "little", feature = "big"))]
 impl Receivable for std::num::NonZeroUsize {
     #[inline]
@@ -508,8 +499,7 @@ impl Receivable for std::num::NonZeroUsize {
     where
         Self: Sized,
     {
-        Self::new(u64::rcv_from(reader)? as usize)
-            .ok_or(crate::error::Error::Zero)
+        Self::new(u64::rcv_from(reader)? as usize).ok_or(crate::error::Error::Zero)
     }
 }
 
@@ -524,7 +514,6 @@ impl Sendable for std::num::NonZeroU128 {
 #[cfg(any(feature = "little", feature = "big"))]
 snd_ref!(&std::num::NonZeroU128);
 
-
 #[cfg(any(feature = "little", feature = "big"))]
 impl Receivable for std::num::NonZeroU128 {
     #[inline]
@@ -532,11 +521,9 @@ impl Receivable for std::num::NonZeroU128 {
     where
         Self: Sized,
     {
-        Self::new(u128::rcv_from(reader)?)
-            .ok_or(crate::error::Error::Zero)
+        Self::new(u128::rcv_from(reader)?).ok_or(crate::error::Error::Zero)
     }
 }
-
 
 impl_tuple!(A, B);
 impl_tuple!(A, B, C);
@@ -657,11 +644,7 @@ impl FromReader for UTF16 {
 #[cfg(any(feature = "little", feature = "big"))]
 impl IntoWriter for UTF16 {
     #[inline]
-    fn into_writer<S: Sender>(
-        &self,
-        writer: &mut S,
-        mut len: usize,
-    ) -> crate::Result<()> {
+    fn into_writer<S: Sender>(&self, writer: &mut S, mut len: usize) -> crate::Result<()> {
         if len > 0 {
             for c in self.chars() {
                 UTF16Char(c).snd_to(writer)?;
@@ -680,16 +663,14 @@ impl IntoWriter for UTF16 {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::{
         endian::{little::LE, UTF16Char, UTF16, VLQ},
-        Rcv, Snd, error::Error,
+        error::Error,
+        Rcv, Snd,
     };
-    use std::{
-        ffi::CString,
-    };
+    use std::ffi::CString;
 
     #[cfg(any(feature = "big", feature = "little"))]
     #[test]
@@ -988,7 +969,7 @@ mod tests {
     }
 
     #[test]
-    fn test_u8_array() -> crate::Result<()>{
+    fn test_u8_array() -> crate::Result<()> {
         let b = [22_u8; 32];
 
         let mut vec = Vec::new();
@@ -1004,10 +985,9 @@ mod tests {
 
     #[test]
     #[cfg(any(feature = "big", feature = "little"))]
-    fn test_vec_u8() -> crate::Result<()>{
-
+    fn test_vec_u8() -> crate::Result<()> {
         let b = vec![1_u8, 2, 3];
-        
+
         let mut vec = Vec::new();
         vec.snd(&b)?;
 
@@ -1018,5 +998,4 @@ mod tests {
 
         Ok(())
     }
-
 }

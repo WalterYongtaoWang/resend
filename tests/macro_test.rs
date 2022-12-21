@@ -1,15 +1,18 @@
 #![cfg(feature = "little")]
 use std::assert_eq;
 
-use resend::{endian::{UTF16, VLQ}, Sendable, Receivable, Snd, Rcv};
-use resend_derive::{Snd, Rcv};
+use resend::{
+    endian::{UTF16, VLQ},
+    Rcv, Receivable, Sendable, Snd,
+};
+use resend_derive::{Rcv, Snd};
 
 #[derive(Copy, Clone, Debug, Snd, Rcv, PartialEq)]
 #[repr(u16)]
 enum Color {
     Red = 2,
     Blue = 32,
-    Green =4,
+    Green = 4,
 }
 
 #[derive(Snd, Rcv, PartialEq, Debug)]
@@ -40,20 +43,20 @@ struct Person {
 //https://github.com/rust-lang/rust/issues/60553
 #[repr(u32)]
 #[derive(Snd, Rcv, Debug, PartialEq)]
-#[cfg(feature="unstable")]
+#[cfg(feature = "unstable")]
 enum DeviceType {
     A,
     B = 2,
     Pt(Point) = 22,
 }
 
-
-pub struct VarLenString (pub String);
+pub struct VarLenString(pub String);
 
 impl Sendable for VarLenString {
     fn snd_to<W>(&self, writer: &mut W) -> resend::Result<()>
     where
-        W: resend::Sender {
+        W: resend::Sender,
+    {
         writer.snd(resend::endian::VLQ(self.0.len()))?;
         writer.snd_all(self.0.as_bytes())
     }
@@ -62,7 +65,8 @@ impl Sendable for VarLenString {
 impl Receivable for VarLenString {
     fn rcv_from<R>(reader: &mut R) -> resend::Result<Self>
     where
-        R: resend::Receiver {
+        R: resend::Receiver,
+    {
         let len: VLQ = reader.rcv()?;
         let b = reader.rcv_bytes(*len)?;
         let s = std::str::from_utf8(&b)?;
@@ -71,9 +75,14 @@ impl Receivable for VarLenString {
 }
 
 #[test]
-fn test_point() -> resend::Result<()>{
+fn test_point() -> resend::Result<()> {
     let mut vec = Vec::new();
-    let p = Point{x: 5, y: 8, s: "1234".to_string(), u: UTF16("123".to_string())};
+    let p = Point {
+        x: 5,
+        y: 8,
+        s: "1234".to_string(),
+        u: UTF16("123".to_string()),
+    };
     vec.snd(&p)?;
 
     let mut buf = &vec[..];
@@ -85,7 +94,7 @@ fn test_point() -> resend::Result<()>{
 #[test]
 fn test_person() -> resend::Result<()> {
     let mut vec = Vec::new();
-    let p = Person{
+    let p = Person {
         name: "Great".to_string(),
         age: 32,
         qty: 0xF8342122,
@@ -93,7 +102,12 @@ fn test_person() -> resend::Result<()> {
         desc: UTF16("people".to_string()),
         ignore: 33,
         color: Color::Green,
-        point: Point{x: 5, y: 12, s: "great".to_string(), u: UTF16("12345".to_string())},
+        point: Point {
+            x: 5,
+            y: 12,
+            s: "great".to_string(),
+            u: UTF16("12345".to_string()),
+        },
     };
 
     vec.snd(&p)?;
@@ -108,20 +122,20 @@ fn test_person() -> resend::Result<()> {
     p1.ignore = 33;
     assert_eq!(p, p1);
 
-    let v : u8 = buf.rcv()?;
+    let v: u8 = buf.rcv()?;
 
     if v == 0 {
         println!("*** big endian");
-    }else if v == 2 {
+    } else if v == 2 {
         println!("*** little endian");
-    }else {
+    } else {
         panic!("Wrong");
     }
 
     Ok(())
 }
 
-#[cfg(feature="unstable")]
+#[cfg(feature = "unstable")]
 #[test]
 fn test_enum() -> resend::Result<()> {
     assert_eq!(32, Color::Blue as u32);
@@ -130,22 +144,34 @@ fn test_enum() -> resend::Result<()> {
 
     vec.snd(&DeviceType::B)?;
 
-    let p = Point{x: 5, y: 8, s: "1234".to_string(), u: UTF16("123".to_string())};
+    let p = Point {
+        x: 5,
+        y: 8,
+        s: "1234".to_string(),
+        u: UTF16("123".to_string()),
+    };
     vec.snd(&DeviceType::Pt(p))?;
 
     let mut buf = &vec[..];
-    let c : Color = buf.rcv()?;
+    let c: Color = buf.rcv()?;
     assert_eq!(c, Color::Blue);
 
-    let dt : DeviceType = buf.rcv()?;
+    let dt: DeviceType = buf.rcv()?;
     assert_eq!(dt, DeviceType::B);
 
-    let dt : DeviceType = buf.rcv()?;
-    assert_eq!(dt, DeviceType::Pt(Point{x: 5, y: 8, s: "1234".to_string(), u: UTF16("123".to_string())}));
+    let dt: DeviceType = buf.rcv()?;
+    assert_eq!(
+        dt,
+        DeviceType::Pt(Point {
+            x: 5,
+            y: 8,
+            s: "1234".to_string(),
+            u: UTF16("123".to_string())
+        })
+    );
 
     Ok(())
 }
-
 
 #[test]
 fn test_unit_enum() -> resend::Result<()> {
@@ -154,11 +180,11 @@ fn test_unit_enum() -> resend::Result<()> {
     vec.snd(&Color::Blue)?;
 
     let mut buf = &vec[..];
-    let c : Color = buf.rcv()?;
+    let c: Color = buf.rcv()?;
     assert_eq!(c, Color::Blue);
 
     //only work with LE
-    #[cfg(feature="little")]
+    #[cfg(feature = "little")]
     {
         let c: Color = [32_u8, 0].as_ref().rcv()?;
         assert_eq!(c, Color::Blue);

@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{Rcv, Receivable, Sendable, Sender, Receiver};
+use crate::{Rcv, Receivable, Receiver, Sendable, Sender};
 
 use super::{Ascii, Length, UTF16Char, UTF16};
 
@@ -598,7 +598,7 @@ impl ReceivableLE for Ascii {
             if let Some(c) = char::from_u32(a as u32) {
                 s.push(c);
             } else {
-                return Err(crate::error::Error::InvalidAscii(format!("u8: {}", a)))
+                return Err(crate::error::Error::InvalidAscii(format!("u8: {}", a)));
             }
         }
         Ok(Ascii(s))
@@ -785,7 +785,7 @@ impl ReceivableLE for PathBuf {
 #[cfg(test)]
 mod tests {
     use crate::{endian::little::LE, Snd};
-    
+
     #[test]
     fn test_le_num() -> crate::Result<()> {
         let mut vec: Vec<u8> = Vec::new();
