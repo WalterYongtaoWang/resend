@@ -96,6 +96,7 @@ fn send_struct(ast: &syn::DeriveInput) -> TokenStream {
 
     let gen = quote! {
         impl#life resend::Sendable for &#id_name#life {
+            #[inline]
             fn snd_to<S: resend::Sender>(&self, writer: &mut S) -> resend::Result<()> {
                 #(#build_fields;)*
                 Ok(())
@@ -170,6 +171,7 @@ fn send_enum(ast: &syn::DeriveInput) -> TokenStream {
 
         let gen = quote! {
             impl resend::Sendable for &#id {
+                #[inline]
                 fn snd_to<S: resend::Sender>(&self, writer: &mut S) -> resend::Result<()> {
                     match self {
                         #(#arms,)*
@@ -237,6 +239,7 @@ fn receive_struct(ast: &syn::DeriveInput) -> TokenStream {
 
     let gen = quote! {
         impl#life resend::Receivable for #id_name#life {
+            #[inline]
             fn rcv_from<R: resend::Receiver>(reader: &mut R) -> resend::Result<Self> {
                 #(#build_fields;)*
 
@@ -316,6 +319,7 @@ fn receive_enum(ast: &syn::DeriveInput) -> TokenStream {
 
         let gen = quote! {
             impl resend::Receivable for #id {
+                #[inline]
                 fn rcv_from<R: resend::Receiver>(reader: &mut R) -> resend::Result<Self> {
                     let tag: #tag_type = reader.rcv()?;
                     match tag {
