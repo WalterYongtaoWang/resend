@@ -115,7 +115,7 @@ impl Receivable for u8 {
     where
         Self: Sized,
     {
-        let mut buf = [0; 1];
+        let mut buf = [0];
         reader.rcv_all(&mut buf)?;
         Ok(buf[0])
     }
@@ -136,7 +136,7 @@ impl Receivable for i8 {
     where
         Self: Sized,
     {
-        let mut buf = [0; 1];
+        let mut buf = [0];
         reader.rcv_all(&mut buf)?;
         Ok(buf[0] as i8)
     }
@@ -157,7 +157,7 @@ impl Receivable for bool {
     where
         Self: Sized,
     {
-        let mut buf = [0; 1];
+        let mut buf = [0];
         reader.rcv_all(&mut buf)?;
         Ok(buf[0] != 0)
     }
@@ -220,7 +220,7 @@ impl Receivable for VLQ {
     where
         R: Receiver,
     {
-        let mut buf = [0_u8; 1];
+        let mut buf = [0];
         let mut v = 0;
         loop {
             reader.rcv_all(&mut buf)?;
