@@ -182,7 +182,7 @@ impl Receivable for char {
         Self: Sized,
     {
         let v = u32::rcv_from(reader)?;
-        Ok(char::from_u32(v).unwrap_or(char::REPLACEMENT_CHARACTER))
+        char::from_u32(v).ok_or(crate::error::Error::InvalidChar(v))
     }
 }
 

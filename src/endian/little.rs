@@ -613,7 +613,7 @@ impl ReceivableLE for UTF16Char {
     {
         let mut high = u16::receive_from(reader)? as u32;
         if (0xD800..=0xDBFF).contains(&high) {
-            //It's 4 bytes long
+            //It's 4 byte long
             let low = u16::receive_from(reader)? as u32;
             // high = (((high - 0xD800) << 10) | (low - 0xDC00)) + 0x10000;
             high = (((high & 0x3FF) << 10) | (low & 0x3FF)) + 0x10000;
@@ -624,7 +624,6 @@ impl ReceivableLE for UTF16Char {
         } else {
             Err(crate::error::Error::InvalidChar(high))
         }
-        // Ok(UTF16Char(char::from_u32(high).unwrap_or(char::REPLACEMENT_CHARACTER)))
     }
 }
 

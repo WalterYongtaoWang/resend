@@ -373,7 +373,6 @@ fn get_attr_len(attr: &Attribute) -> AttrLen {
             if let Some(v) = l.nested.first() {
                 match v {
                     syn::NestedMeta::Meta(m) => {
-                        // println!("nested meta {:?}", m.path().get_ident().unwrap());
                         return AttrLen::Ident(m.path().get_ident().unwrap().clone());
                     }
                     syn::NestedMeta::Lit(syn::Lit::Int(i)) => {
