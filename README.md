@@ -111,7 +111,7 @@ pub enum DeviceType {
 DeviceType::PrinterType(printer) is serialized as 4_u32 + IoPrinter data.
 DeviceType::ScardType is serialized as 0x20_u32.
 
-Please be aware: [discriminants on non-unit variants are experimental for now (Rust 1.65)](https://github.com/rust-lang/rust/issues/60553), you have to use Rust nightly for this.
+Please be aware: [discriminants on non-unit variants are stable since Rust 1.66)](https://github.com/rust-lang/rust/issues/60553), you have to use Rust nightly for previous versions.
 
 # Customizable (attributes)
 

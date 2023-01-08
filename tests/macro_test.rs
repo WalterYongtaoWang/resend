@@ -43,7 +43,7 @@ struct Person {
 //https://github.com/rust-lang/rust/issues/60553
 #[repr(u32)]
 #[derive(Snd, Rcv, Debug, PartialEq)]
-#[cfg(feature = "unstable")]
+// #[cfg(feature = "unstable")]//no need since 1.66
 enum DeviceType {
     A,
     B = 2,
@@ -135,7 +135,7 @@ fn test_person() -> resend::Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "unstable")]
+// #[cfg(feature = "unstable")]//no need since 1.66
 #[test]
 fn test_enum() -> resend::Result<()> {
     assert_eq!(32, Color::Blue as u32);
