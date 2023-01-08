@@ -12,6 +12,19 @@ pub trait Sender {
 ///Abstract layer for Read since it's not avaialbe in no_std
 pub trait Receiver {
     fn rcv_all(&mut self, buf: &mut [u8]) -> Result<()>;
+
+    #[inline]
+    #[allow(clippy::uninit_vec)]
+    fn rcv_bytes(&mut self, len: usize) -> Result<Vec<u8>> {
+        // let mut vec = vec![0; len];
+        let mut vec = Vec::with_capacity(len);
+        unsafe {
+            vec.set_len(len);
+        }
+
+        self.rcv_all(&mut vec)?;
+        Ok(vec)
+    }
 }
 
 ///Impl Sendable if the data need to be serialized.
@@ -40,7 +53,6 @@ pub trait Rcv {
     fn rcv<T>(&mut self) -> Result<T>
     where
         T: Receivable;
-    fn rcv_bytes(&mut self, len: usize) -> Result<Vec<u8>>;
 }
 
 ///Receive Trait for the #[len] attribute
@@ -75,19 +87,6 @@ where
         T: Receivable,
     {
         T::rcv_from(self)
-    }
-
-    #[inline]
-    #[allow(clippy::uninit_vec)]
-    fn rcv_bytes(&mut self, len: usize) -> Result<Vec<u8>> {
-        // let mut vec = vec![0; len];
-        let mut vec = Vec::with_capacity(len);
-        unsafe {
-            vec.set_len(len);
-        }
-
-        self.rcv_all(&mut vec)?;
-        Ok(vec)
     }
 }
 
