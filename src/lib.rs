@@ -7,6 +7,8 @@ pub type Result<T> = std::result::Result<T, crate::error::Error>;
 ///Abstract layer for Write since it's not avaialbe in no_std
 pub trait Sender {
     fn snd_all(&mut self, buf: &[u8]) -> Result<()>;
+
+    fn flush(&mut self) -> Result<()>;
 }
 
 ///Abstract layer for Read since it's not avaialbe in no_std
@@ -95,6 +97,11 @@ impl<W: std::io::Write> Sender for W {
     #[inline]
     fn snd_all(&mut self, buf: &[u8]) -> Result<()> {
         self.write_all(buf)?;
+        Ok(())
+    }
+
+    fn flush(&mut self) -> Result<()> {
+        self.flush()?;
         Ok(())
     }
 }
