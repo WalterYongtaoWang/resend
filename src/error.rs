@@ -20,6 +20,9 @@ pub enum Error {
     Io(std::io::Error),
 
     Utf8(Utf8Error),
+    //general error number
+    ErroNo(u32),
+
     ///New kind will be added to replace Other
     Other(&'static str),
 }
