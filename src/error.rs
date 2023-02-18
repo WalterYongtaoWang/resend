@@ -21,7 +21,7 @@ pub enum Error {
 
     Utf8(Utf8Error),
     //general error number
-    ErroNo(u32),
+    ErrNo(u32),
 
     ///New kind will be added to replace Other
     Other(&'static str),
