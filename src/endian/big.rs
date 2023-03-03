@@ -714,7 +714,7 @@ where
 {
     #[inline]
     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        self.as_ref().send_to(writer)
+        (**self).send_to(writer)
     }
 }
 
