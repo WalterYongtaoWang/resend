@@ -93,7 +93,7 @@ where
 }
 
 //impl Sender for all Write implementors
-impl<W: std::io::Write> Sender for W {
+impl<W: std::io::Write + ?Sized> Sender for W {
     #[inline]
     fn snd_all(&mut self, buf: &[u8]) -> Result<()> {
         self.write_all(buf)?;
@@ -107,7 +107,7 @@ impl<W: std::io::Write> Sender for W {
 }
 
 //impl Receiver for all Read implmentors
-impl<R: std::io::Read> Receiver for R {
+impl<R: std::io::Read + ?Sized> Receiver for R {
     #[inline]
     fn rcv_all(&mut self, buf: &mut [u8]) -> Result<()> {
         self.read_exact(buf)?;
