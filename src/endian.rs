@@ -12,7 +12,7 @@ pub mod little;
 use std::{ffi::CString, ops::Deref};
 
 use crate::{impl_tuple, snd_ref};
-use crate::{FromReader, IntoWriter, Rcv, Receivable, Receiver, Sendable, Sender};
+use crate::{FromReader, IntoWriter, Receivable, Receiver, Sendable, Sender};
 
 ///UTF16 char
 #[derive(PartialEq, Eq, Debug)]
@@ -161,6 +161,69 @@ impl Receivable for bool {
         reader.rcv_all(&mut buf)?;
         Ok(buf[0] != 0)
     }
+}
+
+impl Sendable for Length {
+    fn snd_to<S>(&self, writer: &mut S) -> crate::Result<()>
+    where
+        S: Sender {
+        #[cfg(not(any(feature = "len_vlq", feature = "len_16")))]
+        if cfg!(feature = "little") {
+            writer.snd_all(&(self.0 as u32).to_le_bytes())?;
+        } else if cfg!(feature = "big"){
+            writer.snd_all(&(self.0 as u32).to_be_bytes())?;
+        } else {
+            writer.snd_all(&(self.0 as u32).to_ne_bytes())?;
+        }
+        
+        #[cfg(feature = "len_16")]
+        if cfg!(feature = "little") {
+            writer.snd_all(&(self.0 as u16).to_le_bytes())?;
+        } else {
+            writer.snd_all(&(self.0 as u16).to_be_bytes())?;
+        }
+        #[cfg(feature = "len_vlq")]
+        VLQ(self.0).snd_to(writer)?;
+
+        Ok(())
+    }
+}
+
+impl Receivable for Length {
+    fn rcv_from<R>(reader: &mut R) -> crate::Result<Self>
+    where
+        R: Receiver {
+            #[cfg(not(any(feature = "len_vlq", feature = "len_16")))]
+            let len = {
+                let mut v = [0; 4];
+                reader.rcv_all(&mut v)?;
+                if cfg!(feature = "little") {
+                    u32::from_le_bytes(v) as usize
+                } else if cfg!(feature = "big"){
+                    u32::from_be_bytes(v) as usize
+                } else {
+                    u32::from_ne_bytes(v) as usize
+                }
+            };
+            
+            #[cfg(feature = "len_16")]
+            let len = {
+                let mut v = [0; 2];
+                reader.rcv_all(&mut v)?;
+                if cfg!(feature = "little") {
+                    u16::from_le_bytes(v) as usize
+                } else {
+                    u16::from_be_bytes(v) as usize
+                }
+            };
+            #[cfg(feature = "len_vlq")]
+            let len = {
+                let vlq: VLQ = VLQ::rcv_from(reader)?;
+                vlq.0 as usize
+            };
+    
+            Ok(Length(len))
+        }
 }
 
 #[cfg(any(feature = "little", feature = "big"))]

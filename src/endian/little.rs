@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{Rcv, Receivable, Receiver, Sendable, Sender};
+use crate::{Receivable, Receiver, Sendable, Sender};
 
 use super::{Ascii, Length, UTF16Char, UTF16};
 
@@ -153,7 +153,7 @@ impl SendableLE for String {
 impl<'a> SendableLE for &'a str {
     #[inline]
     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        Length(self.len()).send_to(writer)?;
+        Length(self.len()).snd_to(writer)?;
         writer.snd_all(self.as_bytes())
     }
 }
@@ -181,7 +181,7 @@ where
 impl<T: SendableLE> SendableLE for Vec<T> {
     #[inline]
     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        Length(self.len()).send_to(writer)?;
+        Length(self.len()).snd_to(writer)?;
         for v in self.iter() {
             v.send_to(writer)?;
         }
@@ -192,7 +192,7 @@ impl<T: SendableLE> SendableLE for Vec<T> {
 impl<T: SendableLE> SendableLE for VecDeque<T> {
     #[inline]
     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        Length(self.len()).send_to(writer)?;
+        Length(self.len()).snd_to(writer)?;
         for v in self.iter() {
             v.send_to(writer)?;
         }
@@ -203,7 +203,7 @@ impl<T: SendableLE> SendableLE for VecDeque<T> {
 impl<T: SendableLE> SendableLE for LinkedList<T> {
     #[inline]
     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        Length(self.len()).send_to(writer)?;
+        Length(self.len()).snd_to(writer)?;
         for v in self.iter() {
             v.send_to(writer)?;
         }
@@ -233,7 +233,7 @@ impl SendableLE for Ascii {
             return Err(crate::error::Error::InvalidAscii(self.0.clone()));
         }
 
-        Length(self.0.len()).send_to(writer)?;
+        Length(self.0.len()).snd_to(writer)?;
         for c in self.0.chars() {
             (c as u8).snd_to(writer)?;
         }
@@ -262,7 +262,7 @@ impl SendableLE for UTF16 {
     #[inline]
     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
         let len: usize = self.0.chars().map(|c| c.len_utf16() * 2).sum();
-        Length(len).send_to(writer)?;
+        Length(len).snd_to(writer)?;
         //don't reuse into_writer here (which is conditional compiled)
         for c in self.chars() {
             UTF16Char(c).send_to(writer)?;
@@ -271,24 +271,6 @@ impl SendableLE for UTF16 {
     }
 }
 
-impl SendableLE for Length {
-    #[inline]
-    fn send_to<W>(&self, writer: &mut W) -> crate::Result<()>
-    where
-        W: Sender,
-    {
-        self.check()?;
-
-        #[cfg(not(any(feature = "len_vlq", feature = "len_16")))]
-        let r = (self.0 as u32).send_to(writer);
-        #[cfg(feature = "len_16")]
-        let r = (self.0 as u16).send_to(writer);
-        #[cfg(feature = "len_vlq")]
-        let r = super::VLQ(self.0).snd_to(writer);
-
-        r
-    }
-}
 
 //endregion
 
@@ -444,7 +426,7 @@ impl ReceivableLE for String {
     where
         Self: Sized,
     {
-        let len = *Length::receive_from(reader)?;
+        let len = *Length::rcv_from(reader)?;
         let buffer = reader.rcv_bytes(len)?;
         let s = std::str::from_utf8(&buffer)?;
         Ok(s.to_string())
@@ -477,7 +459,7 @@ where
     where
         Self: Sized,
     {
-        let len = *Length::receive_from(reader)?;
+        let len = *Length::rcv_from(reader)?;
         let mut v = Vec::with_capacity(len);
         for _ in 0..len {
             let t = T::receive_from(reader)?;
@@ -496,7 +478,7 @@ where
     where
         Self: Sized,
     {
-        let len = *Length::receive_from(reader)?;
+        let len = *Length::rcv_from(reader)?;
         let mut v = VecDeque::with_capacity(len);
         for _ in 0..len {
             let t = T::receive_from(reader)?;
@@ -515,7 +497,7 @@ where
     where
         Self: Sized,
     {
-        let len = *Length::receive_from(reader)?;
+        let len = *Length::rcv_from(reader)?;
         let mut v = LinkedList::new();
         for _ in 0..len {
             let t = T::receive_from(reader)?;
@@ -535,7 +517,7 @@ where
     where
         Self: Sized,
     {
-        let len = *Length::receive_from(reader)?;
+        let len = *Length::rcv_from(reader)?;
         let mut kv = HashMap::with_capacity(len);
         for _ in 0..len {
             let k = K::receive_from(reader)?;
@@ -556,7 +538,7 @@ where
     where
         Self: Sized,
     {
-        let len = *Length::receive_from(reader)?;
+        let len = *Length::rcv_from(reader)?;
         let mut kv = BTreeMap::new();
         for _ in 0..len {
             let k = K::receive_from(reader)?;
@@ -591,7 +573,7 @@ impl ReceivableLE for Ascii {
     where
         Self: Sized,
     {
-        let len = *Length::receive_from(reader)?;
+        let len = *Length::rcv_from(reader)?;
         let buf = reader.rcv_bytes(len)?;
         let mut s = String::with_capacity(len);
         for a in buf {
@@ -633,7 +615,7 @@ impl ReceivableLE for UTF16 {
     where
         Self: Sized,
     {
-        let mut len = *Length::receive_from(reader)?;
+        let mut len = *Length::rcv_from(reader)?;
         let mut s = String::with_capacity(len / 2);
         while len > 0 {
             let c = UTF16Char::receive_from(reader)?;
@@ -645,24 +627,6 @@ impl ReceivableLE for UTF16 {
     }
 }
 
-impl ReceivableLE for Length {
-    #[inline]
-    fn receive_from<R>(reader: &mut R) -> crate::Result<Self>
-    where
-        R: Receiver,
-    {
-        #[cfg(not(any(feature = "len_vlq", feature = "len_16")))]
-        let v = u32::receive_from(reader)? as usize;
-        #[cfg(feature = "len_16")]
-        let v = u16::receive_from(reader)? as usize;
-        #[cfg(feature = "len_vlq")]
-        let v = *super::VLQ::rcv_from(reader)?;
-
-        let l = Length(v);
-        l.check()?;
-        Ok(l)
-    }
-}
 
 impl<Idx> SendableLE for Range<Idx>
 where
