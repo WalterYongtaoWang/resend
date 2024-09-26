@@ -1,17 +1,14 @@
 //! Big-endian type (BE) and implmentations
 use std::{
     borrow::Cow,
-    collections::{BTreeMap, HashMap, LinkedList, VecDeque},
-    fmt::{Debug, Display},
-    hash::Hash,
-    ops::{Deref, Range},
+    ops::Range,
     path::PathBuf,
     time::Duration,
 };
 
 use crate::{Receivable, Receiver, Sendable, Sender};
 
-use super::{Ascii, Length, UTF16Char, UTF16};
+use super::{Length, UTF16Char, BE, UTF16};
 
 //region send_to/Recive trait
 pub trait SendableBE {
@@ -26,19 +23,6 @@ pub trait ReceivableBE {
 
 //endregion
 
-//region BE and impl
-#[derive(PartialEq, Eq, Debug)]
-pub struct BE<T>(pub T);
-
-impl<T> Deref for BE<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-//endregion
 
 //region send_to impl
 impl<T: SendableBE> Sendable for BE<T> {
@@ -140,103 +124,12 @@ impl SendableBE for i128 {
     }
 }
 
-impl SendableBE for String {
-    #[inline]
-    fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        self.as_str().send_to(writer)
-    }
-}
-
-impl<'a> SendableBE for &'a str {
-    #[inline]
-    fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        Length(self.len()).snd_to(writer)?;
-        writer.snd_all(self.as_bytes())
-    }
-}
-
 //This is not possible for now
 // impl<T: SendableBE, U: IntoIterator<Item = T>> SendableBE for U{
 //     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
 //         todo!()
 //     }
 // }
-
-impl<T, const N: usize> SendableBE for [T; N]
-where
-    T: SendableBE,
-{
-    #[inline]
-    fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        for v in self {
-            v.send_to(writer)?;
-        }
-        Ok(())
-    }
-}
-
-impl<T: SendableBE> SendableBE for Vec<T> {
-    #[inline]
-    fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        Length(self.len()).snd_to(writer)?;
-        for v in self.iter() {
-            v.send_to(writer)?;
-        }
-        Ok(())
-    }
-}
-
-impl<T: SendableBE> SendableBE for VecDeque<T> {
-    #[inline]
-    fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        Length(self.len()).snd_to(writer)?;
-        for v in self.iter() {
-            v.send_to(writer)?;
-        }
-        Ok(())
-    }
-}
-
-impl<T: SendableBE> SendableBE for LinkedList<T> {
-    #[inline]
-    fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        Length(self.len()).snd_to(writer)?;
-        for v in self.iter() {
-            v.send_to(writer)?;
-        }
-        Ok(())
-    }
-}
-
-impl<T> SendableBE for Option<T>
-where
-    T: SendableBE,
-{
-    #[inline]
-    fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        if let Some(v) = self {
-            true.snd_to(writer)?;
-            v.send_to(writer)
-        } else {
-            false.snd_to(writer)
-        }
-    }
-}
-
-impl SendableBE for Ascii {
-    #[inline]
-    fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        if !self.0.is_ascii() {
-            return Err(crate::error::Error::InvalidAscii(self.0.clone()));
-        }
-
-        Length(self.0.len()).snd_to(writer)?;
-        for c in self.0.chars() {
-            (c as u8).snd_to(writer)?;
-        }
-        Ok(())
-    }
-}
 
 impl SendableBE for UTF16Char {
     #[inline]
@@ -417,173 +310,6 @@ impl ReceivableBE for i128 {
     }
 }
 
-impl ReceivableBE for String {
-    #[inline]
-    fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
-    where
-        Self: Sized,
-    {
-        let len = *Length::rcv_from(reader)?;
-        let buffer = reader.rcv_bytes(len)?;
-        let s = std::str::from_utf8(&buffer)?;
-        Ok(s.to_string())
-    }
-}
-
-impl<T, const N: usize> ReceivableBE for [T; N]
-where
-    T: Eq + ReceivableBE + Debug + Display,
-{
-    #[inline]
-    fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
-    where
-        Self: Sized,
-    {
-        let mut v = Vec::with_capacity(N);
-        for _ in 0..N {
-            v.push(T::receive_from(reader)?);
-        }
-        Self::try_from(v).map_err(|_| crate::error::Error::Other("convert vec to array error"))
-    }
-}
-
-impl<T> ReceivableBE for Vec<T>
-where
-    T: ReceivableBE,
-{
-    #[inline]
-    fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
-    where
-        Self: Sized,
-    {
-        let len = *Length::rcv_from(reader)?;
-        let mut v = Vec::with_capacity(len);
-        for _ in 0..len {
-            let t = T::receive_from(reader)?;
-            v.push(t);
-        }
-        Ok(v)
-    }
-}
-
-impl<T> ReceivableBE for VecDeque<T>
-where
-    T: ReceivableBE,
-{
-    #[inline]
-    fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
-    where
-        Self: Sized,
-    {
-        let len = *Length::rcv_from(reader)?;
-        let mut v = VecDeque::with_capacity(len);
-        for _ in 0..len {
-            let t = T::receive_from(reader)?;
-            v.push_back(t);
-        }
-        Ok(v)
-    }
-}
-
-impl<T> ReceivableBE for LinkedList<T>
-where
-    T: ReceivableBE,
-{
-    #[inline]
-    fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
-    where
-        Self: Sized,
-    {
-        let len = *Length::rcv_from(reader)?;
-        let mut v = LinkedList::new();
-        for _ in 0..len {
-            let t = T::receive_from(reader)?;
-            v.push_back(t);
-        }
-        Ok(v)
-    }
-}
-
-impl<K, V> ReceivableBE for HashMap<K, V>
-where
-    K: ReceivableBE + Eq + Hash,
-    V: ReceivableBE,
-{
-    #[inline]
-    fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
-    where
-        Self: Sized,
-    {
-        let len = *Length::rcv_from(reader)?;
-        let mut kv = HashMap::with_capacity(len);
-        for _ in 0..len {
-            let k = K::receive_from(reader)?;
-            let v = V::receive_from(reader)?;
-            kv.insert(k, v);
-        }
-        Ok(kv)
-    }
-}
-
-impl<K, V> ReceivableBE for BTreeMap<K, V>
-where
-    K: ReceivableBE + Eq + Hash + Ord,
-    V: ReceivableBE,
-{
-    #[inline]
-    fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
-    where
-        Self: Sized,
-    {
-        let len = *Length::rcv_from(reader)?;
-        let mut kv = BTreeMap::new();
-        for _ in 0..len {
-            let k = K::receive_from(reader)?;
-            let v = V::receive_from(reader)?;
-            kv.insert(k, v);
-        }
-        Ok(kv)
-    }
-}
-
-impl<T> ReceivableBE for Option<T>
-where
-    T: ReceivableBE,
-{
-    #[inline]
-    fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
-    where
-        Self: Sized,
-    {
-        let flag = bool::rcv_from(reader)?;
-        if flag {
-            Ok(Some(T::receive_from(reader)?))
-        } else {
-            Ok(None)
-        }
-    }
-}
-
-impl ReceivableBE for Ascii {
-    #[inline]
-    fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
-    where
-        Self: Sized,
-    {
-        let len = *Length::rcv_from(reader)?;
-        let buf = reader.rcv_bytes(len)?;
-        let mut s = String::with_capacity(len);
-        for a in buf {
-            if let Some(c) = char::from_u32(a as u32) {
-                s.push(c);
-            } else {
-                return Err(crate::error::Error::InvalidAscii(format!("u8: {}", a)));
-            }
-        }
-        Ok(Ascii(s))
-    }
-}
-
 impl ReceivableBE for UTF16Char {
     #[inline]
     fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
@@ -726,8 +452,8 @@ impl SendableBE for PathBuf {
     #[inline]
     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
         match self.to_string_lossy() {
-            Cow::Borrowed(v) => v.send_to(writer),
-            Cow::Owned(v) => v.send_to(writer),
+            Cow::Borrowed(v) => v.snd_to(writer),
+            Cow::Owned(v) => v.snd_to(writer),
         }
     }
 }
@@ -735,7 +461,7 @@ impl SendableBE for PathBuf {
 impl ReceivableBE for PathBuf {
     #[inline]
     fn receive_from<R: Receiver>(reader: &mut R) -> crate::Result<Self> {
-        let s = String::receive_from(reader)?;
+        let s = String::rcv_from(reader)?;
         Ok(PathBuf::from(s))
     }
 }

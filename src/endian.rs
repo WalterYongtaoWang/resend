@@ -9,7 +9,8 @@ pub mod big;
 pub mod impl_macro;
 pub mod little;
 
-use std::{ffi::CString, ops::Deref};
+use std::collections::{BTreeMap, HashMap, LinkedList, VecDeque};
+use std::{ffi::CString, hash::Hash, ops::Deref};
 
 use crate::{impl_tuple, snd_ref};
 use crate::{FromReader, IntoWriter, Receivable, Receiver, Sendable, Sender};
@@ -28,6 +29,57 @@ pub struct VLQ(pub usize);
 
 ///Length for String, collections etc.
 pub struct Length(pub usize);
+
+
+#[derive(PartialEq, Eq, Debug)]
+pub struct LE<T>(pub T);
+
+impl<T> Deref for LE<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub struct BE<T>(pub T);
+
+impl<T> Deref for BE<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+// impl<T: Sendable> Sendable for LE<T> {
+//     #[inline]
+//     fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+//         self.0.snd_to(writer)
+//     }
+// }
+
+// impl<T: Sendable> Sendable for &LE<T> {
+//     #[inline]
+//     fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+//         self.0.snd_to(writer)
+//     }
+// }
+
+// impl<T> Receivable for LE<T>
+// where
+//     T: Receivable,
+// {
+//     #[inline]
+//     fn rcv_from<R>(reader: &mut R) -> crate::Result<Self>
+//     where
+//         R: Receiver,
+//     {
+//         Ok(LE(T::rcv_from(reader)?))
+//     }
+// }
+
 
 impl Deref for UTF16Char {
     type Target = char;
@@ -332,59 +384,351 @@ impl Receivable for CString {
     }
 }
 
-impl<const N: usize> Sendable for [u8; N] {
+
+impl Sendable for String {
     #[inline]
     fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        writer.snd_all(self)?;
-        Ok(())
+        self.as_str().snd_to(writer)
     }
 }
 
-impl<const N: usize> Sendable for &[u8; N] {
-    #[inline]
-    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        #[allow(clippy::explicit_auto_deref)]
-        writer.snd_all(*self)?;
-        Ok(())
-    }
-}
+snd_ref!(&String);
 
-impl<const N: usize> Receivable for [u8; N] {
+impl Receivable for String {
     #[inline]
     fn rcv_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
     where
         Self: Sized,
     {
-        let v = reader.rcv_bytes(N)?;
-        Self::try_from(v).map_err(|_| crate::error::Error::Other("convert vec to array error"))
+        let len = *Length::rcv_from(reader)?;
+        let buffer = reader.rcv_bytes(len)?;
+        let s = std::str::from_utf8(&buffer)?;
+        Ok(s.to_string())
     }
 }
 
-#[cfg(any(feature = "little", feature = "big"))]
-impl Sendable for Vec<u8> {
+
+impl<'a> Sendable for &'a str {
     #[inline]
     fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-        //length need to be little or big-endian
         Length(self.len()).snd_to(writer)?;
-        writer.snd_all(self)?;
+        writer.snd_all(self.as_bytes())
+    }
+}
+
+
+
+impl<T, const N: usize> Sendable for [T; N]
+where
+    T: Sendable,
+{
+    #[inline]
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        for v in self {
+            v.snd_to(writer)?;
+        }
         Ok(())
     }
 }
 
-#[cfg(any(feature = "little", feature = "big"))]
-snd_ref!(&Vec<u8>);
-
-#[cfg(any(feature = "little", feature = "big"))]
-impl Receivable for Vec<u8> {
+impl<T, const N: usize> Sendable for &[T; N]
+where
+    T: Sendable,
+{
     #[inline]
-    fn rcv_from<R>(reader: &mut R) -> crate::Result<Self>
-    where
-        R: Receiver,
-    {
-        let len = *Length::rcv_from(reader)?;
-        reader.rcv_bytes(len)
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        (*self).snd_to(writer)
     }
 }
+
+
+impl<T, const N: usize> Receivable for [T; N]
+where
+    T: Eq + Receivable,
+{
+    #[inline]
+    fn rcv_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        let mut v = Vec::with_capacity(N);
+        for _ in 0..N {
+            v.push(T::rcv_from(reader)?);
+        }
+        Self::try_from(v).map_err(|_| crate::error::Error::Other("convert vec to array error"))
+    }
+}
+
+
+impl<T:Sendable> Sendable for Vec<T> {
+    fn snd_to<S>(&self, writer: &mut S) -> crate::Result<()>
+    where
+        S: Sender {
+        Length(self.len()).snd_to(writer)?;
+        for v in self.iter() {
+            v.snd_to(writer)?;
+        }
+        Ok(())
+    }
+}
+
+impl<T:Sendable> Sendable for &Vec<T> {
+    fn snd_to<S>(&self, writer: &mut S) -> crate::Result<()>
+    where
+        S: Sender {
+        (*self).snd_to(writer)
+    }
+}
+
+
+impl<T: Receivable> Receivable for Vec<T> {
+    fn rcv_from<R>(reader: &mut R) -> crate::Result<Self>
+    where
+        R: Receiver {
+        let len = *Length::rcv_from(reader)?;
+        let mut v = Vec::with_capacity(len);
+        for _ in 0..len {
+            let t = T::rcv_from(reader)?;
+            v.push(t);
+        }
+        Ok(v)
+    }
+}
+
+impl<T: Sendable> Sendable for VecDeque<T> {
+    #[inline]
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        Length(self.len()).snd_to(writer)?;
+        for v in self.iter() {
+            v.snd_to(writer)?;
+        }
+        Ok(())
+    }
+}
+
+impl<T: Sendable> Sendable for &VecDeque<T> {
+    #[inline]
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        (*self).snd_to(writer)
+    }
+}
+
+
+impl<T> Receivable for VecDeque<T>
+where
+    T: Receivable,
+{
+    #[inline]
+    fn rcv_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        let len = *Length::rcv_from(reader)?;
+        let mut v = VecDeque::with_capacity(len);
+        for _ in 0..len {
+            let t = T::rcv_from(reader)?;
+            v.push_back(t);
+        }
+        Ok(v)
+    }
+}
+
+
+impl<T: Sendable> Sendable for LinkedList<T> {
+    #[inline]
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        Length(self.len()).snd_to(writer)?;
+        for v in self.iter() {
+            v.snd_to(writer)?;
+        }
+        Ok(())
+    }
+}
+
+impl<T: Sendable> Sendable for &LinkedList<T> {
+    #[inline]
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        (*self).snd_to(writer)
+    }
+}
+
+
+impl<T> Receivable for LinkedList<T>
+where
+    T: Receivable,
+{
+    #[inline]
+    fn rcv_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        let len = *Length::rcv_from(reader)?;
+        let mut v = LinkedList::new();
+        for _ in 0..len {
+            let t = T::rcv_from(reader)?;
+            v.push_back(t);
+        }
+        Ok(v)
+    }
+}
+
+
+impl<T> Sendable for Option<T>
+where
+    T: Sendable,
+{
+    #[inline]
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        if let Some(v) = self {
+            true.snd_to(writer)?;
+            v.snd_to(writer)
+        } else {
+            false.snd_to(writer)
+        }
+    }
+}
+
+impl<T> Sendable for &Option<T>
+where
+    T: Sendable,
+{
+    #[inline]
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        (*self).snd_to(writer)
+    }
+}
+
+
+impl<T> Receivable for Option<T>
+where
+    T: Receivable,
+{
+    #[inline]
+    fn rcv_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        let flag: bool = bool::rcv_from(reader)?;
+        if flag {
+            Ok(Some(T::rcv_from(reader)?))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+impl<K, V> Sendable for HashMap<K, V>
+where
+    K: Sendable + Eq + Hash,
+    V: Sendable,
+{
+    fn snd_to<S>(&self, writer: &mut S) -> crate::Result<()>
+    where
+        S: Sender {
+        Length(self.len()).snd_to(writer)?;
+        for (k, v) in self {
+            k.snd_to(writer)?;
+            v.snd_to(writer)?;
+        }
+        Ok(())
+    }
+}
+
+impl<K, V> Receivable for HashMap<K, V>
+where
+    K: Receivable + Eq + Hash,
+    V: Receivable,
+{
+    #[inline]
+    fn rcv_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        let len = *Length::rcv_from(reader)?;
+        let mut kv = HashMap::with_capacity(len);
+        for _ in 0..len {
+            let k = K::rcv_from(reader)?;
+            let v = V::rcv_from(reader)?;
+            kv.insert(k, v);
+        }
+        Ok(kv)
+    }
+}
+
+impl<K, V> Sendable for BTreeMap<K, V>
+where
+    K: Sendable + Eq + Hash,
+    V: Sendable,
+{
+    fn snd_to<S>(&self, writer: &mut S) -> crate::Result<()>
+    where
+        S: Sender {
+        Length(self.len()).snd_to(writer)?;
+        for (k, v) in self {
+            k.snd_to(writer)?;
+            v.snd_to(writer)?;
+        }
+        Ok(())
+    }
+}
+
+
+impl<K, V> Receivable for BTreeMap<K, V>
+where
+    K: Receivable + Eq + Hash + Ord,
+    V: Receivable,
+{
+    #[inline]
+    fn rcv_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        let len = *Length::rcv_from(reader)?;
+        let mut kv = BTreeMap::new();
+        for _ in 0..len {
+            let k = K::rcv_from(reader)?;
+            let v = V::rcv_from(reader)?;
+            kv.insert(k, v);
+        }
+        Ok(kv)
+    }
+}
+
+impl Sendable for Ascii {
+    #[inline]
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        if !self.0.is_ascii() {
+            return Err(crate::error::Error::InvalidAscii(self.0.clone()));
+        }
+
+        Length(self.0.len()).snd_to(writer)?;
+        for c in self.0.chars() {
+            (c as u8).snd_to(writer)?;
+        }
+        Ok(())
+    }
+}
+
+impl Receivable for Ascii {
+    #[inline]
+    fn rcv_from<R: Receiver>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        let len = *Length::rcv_from(reader)?;
+        let buf = reader.rcv_bytes(len)?;
+        let mut s = String::with_capacity(len);
+        for a in buf {
+            if let Some(c) = char::from_u32(a as u32) {
+                s.push(c);
+            } else {
+                return Err(crate::error::Error::InvalidAscii(format!("u8: {}", a)));
+            }
+        }
+        Ok(Ascii(s))
+    }
+}
+
 
 #[cfg(any(feature = "little", feature = "big"))]
 impl Sendable for usize {
@@ -729,7 +1073,7 @@ impl IntoWriter for UTF16 {
 #[cfg(test)]
 mod tests {
     use crate::{
-        endian::{little::LE, UTF16Char, UTF16, VLQ},
+        endian::{LE, UTF16Char, UTF16, VLQ},
         error::Error,
         Rcv, Snd,
     };
@@ -860,16 +1204,6 @@ mod tests {
                 | ('3' as u64) << 48
                 | ('4' as u64) << 56
         );
-        Ok(())
-    }
-
-    #[test]
-    fn test_string() -> crate::Result<()> {
-        let mut vec: Vec<u8> = Vec::new();
-        vec.snd(LE("2欢迎2𝌆𠮷\0".to_string()))?;
-        let mut buf = &vec[..];
-        let s: LE<String> = buf.rcv()?;
-        assert_eq!("2欢迎2𝌆𠮷\0", *s);
         Ok(())
     }
 
