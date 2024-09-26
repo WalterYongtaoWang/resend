@@ -213,6 +213,8 @@ impl Sendable for Length {
     }
 }
 
+snd_ref!(&Length);
+
 impl Receivable for Length {
     fn rcv_from<R>(reader: &mut R) -> crate::Result<Self>
     where
@@ -606,6 +608,19 @@ where
     }
 }
 
+impl<K, V> Sendable for &HashMap<K, V>
+where
+    K: Sendable + Eq + Hash,
+    V: Sendable,
+{
+    fn snd_to<S>(&self, writer: &mut S) -> crate::Result<()>
+    where
+        S: Sender {
+        (*self).snd_to(writer)
+    }
+}
+
+
 impl<K, V> Receivable for HashMap<K, V>
 where
     K: Receivable + Eq + Hash,
@@ -644,6 +659,18 @@ where
     }
 }
 
+impl<K, V> Sendable for &BTreeMap<K, V>
+where
+    K: Sendable + Eq + Hash,
+    V: Sendable,
+{
+    fn snd_to<S>(&self, writer: &mut S) -> crate::Result<()>
+    where
+        S: Sender {
+        (*self).snd_to(writer)
+    }
+}
+
 
 impl<K, V> Receivable for BTreeMap<K, V>
 where
@@ -678,6 +705,13 @@ impl Sendable for Ascii {
             (c as u8).snd_to(writer)?;
         }
         Ok(())
+    }
+}
+
+impl Sendable for &Ascii {
+    #[inline]
+    fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
+        (*self).snd_to(writer)
     }
 }
 
@@ -953,6 +987,13 @@ impl IntoWriter for String {
     }
 }
 
+impl IntoWriter for &String {
+    #[inline]
+    fn into_writer<S: Sender>(&self, writer: &mut S, len: usize) -> crate::Result<()> {
+        (*self).into_writer(writer, len)
+    }
+}
+
 impl FromReader for Ascii {
     #[inline]
     fn from_reader<R: Receiver>(reader: &mut R, len: usize) -> crate::Result<Self> {
@@ -967,6 +1008,14 @@ impl IntoWriter for Ascii {
         self.0.into_writer(writer, len)
     }
 }
+
+impl IntoWriter for &Ascii {
+    #[inline]
+    fn into_writer<S: Sender>(&self, writer: &mut S, len: usize) -> crate::Result<()> {
+        self.0.into_writer(writer, len)
+    }
+}
+
 
 impl FromReader for Vec<u8> {
     #[inline]
@@ -996,6 +1045,14 @@ impl IntoWriter for Vec<u8> {
         Ok(())
     }
 }
+
+impl IntoWriter for &Vec<u8> {
+    #[inline]
+    fn into_writer<S: Sender>(&self, writer: &mut S, len: usize) -> crate::Result<()> {
+        (*self).into_writer(writer, len)
+    }
+}
+
 
 #[cfg(any(feature = "little", feature = "big"))]
 impl FromReader for UTF16 {
