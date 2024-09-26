@@ -10,7 +10,6 @@ use crate::{Receivable, Receiver, Sendable, Sender};
 
 use super::{Length, UTF16Char, BE, UTF16};
 
-//region send_to/Recive trait
 pub trait SendableBE {
     fn send_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()>;
 }
@@ -21,10 +20,6 @@ pub trait ReceivableBE {
         Self: Sized;
 }
 
-//endregion
-
-
-//region send_to impl
 impl<T: SendableBE> Sendable for BE<T> {
     #[inline]
     fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
@@ -161,10 +156,6 @@ impl SendableBE for UTF16 {
     }
 }
 
-
-//endregion
-
-//region receive_from
 
 impl<T> Receivable for BE<T>
 where
@@ -466,7 +457,6 @@ impl ReceivableBE for PathBuf {
     }
 }
 
-//endregion
 #[cfg(test)]
 mod tests {
     use crate::{endian::big::BE, Snd};

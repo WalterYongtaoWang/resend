@@ -53,34 +53,6 @@ impl<T> Deref for BE<T> {
     }
 }
 
-// impl<T: Sendable> Sendable for LE<T> {
-//     #[inline]
-//     fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-//         self.0.snd_to(writer)
-//     }
-// }
-
-// impl<T: Sendable> Sendable for &LE<T> {
-//     #[inline]
-//     fn snd_to<W: Sender>(&self, writer: &mut W) -> crate::Result<()> {
-//         self.0.snd_to(writer)
-//     }
-// }
-
-// impl<T> Receivable for LE<T>
-// where
-//     T: Receivable,
-// {
-//     #[inline]
-//     fn rcv_from<R>(reader: &mut R) -> crate::Result<Self>
-//     where
-//         R: Receiver,
-//     {
-//         Ok(LE(T::rcv_from(reader)?))
-//     }
-// }
-
-
 impl Deref for UTF16Char {
     type Target = char;
 
