@@ -1017,14 +1017,19 @@ impl IntoWriter for &Ascii {
 }
 
 
-impl FromReader for Vec<u8> {
+impl<T: Receivable> FromReader for Vec<T> {
     #[inline]
     fn from_reader<R: Receiver>(reader: &mut R, len: usize) -> crate::Result<Self> {
-        reader.rcv_bytes(len)
+        let mut v = Vec::with_capacity(len);
+        for _ in 0..len {
+            let t: T = T::rcv_from(reader)?;
+            v.push(t);
+        }
+        Ok(v)
     }
 }
 
-impl IntoWriter for Vec<u8> {
+impl<T: Sendable + Default> IntoWriter for Vec<T> {
     #[inline]
     fn into_writer<S: Sender>(&self, writer: &mut S, len: usize) -> crate::Result<()> {
         let len_s = self.len();
@@ -1035,24 +1040,24 @@ impl IntoWriter for Vec<u8> {
         };
 
         let b = &self[..l];
+        for v in b {
+            v.snd_to(writer)?;
+        }
 
-        writer.snd_all(b)?;
-
-        if left > 0 {
-            writer.snd_all(&vec![0; left])?;
+        for _ in 0..left {
+            T::default().snd_to(writer)?;
         }
 
         Ok(())
     }
 }
 
-impl IntoWriter for &Vec<u8> {
+impl<T: Sendable + Default> IntoWriter for &Vec<T> {
     #[inline]
     fn into_writer<S: Sender>(&self, writer: &mut S, len: usize) -> crate::Result<()> {
         (*self).into_writer(writer, len)
     }
 }
-
 
 #[cfg(any(feature = "little", feature = "big"))]
 impl FromReader for UTF16 {
